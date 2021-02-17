@@ -1,0 +1,40 @@
+version: "3.7"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.2.1
+    ports:
+      - "2181:2181"
+    environment:
+      LOG_DIR: /tmp/logs
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka: 
+    image: confluentinc/cp-kafka:5.2.1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      LOG_DIR: "/tmp/logs"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL_LISTENER://kafka:29092,EXTERNAL_LISTENER://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL_LISTENER://kafka:29092,EXTERNAL_LISTENER://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL_LISTENER:PLAINTEXT,EXTERNAL_LISTENER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL_LISTENER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  akhq:
+    image: tchiotludo/akhq:0.16.0
+    ports:
+      - "8888:8080"
+    depends_on:
+      - kafka
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:29092"
